@@ -1,0 +1,20 @@
+{
+  "name": "stacks",
+  "version": "1.0.0",
+  "description": "AWS CloudFormation stack command line management tool",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azjones/stacks.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/azjones/stacks/issues"
+  },
+  "homepage": "https://github.com/azjones/stacks#readme"
+}
