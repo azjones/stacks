@@ -88,9 +88,9 @@ program
   })
 
 program
-  .command('list')
+  .command('list [type]')
   .description('list active stacks')
-  .action(async options => {
+  .action(async (type, options) => {
     profile = options.parent.profile
     region = options.parent.region
     log(chalk.cyanBright('AWS Profile:'), profile)
@@ -98,7 +98,19 @@ program
     AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
     AWS.config.update({ region })
     try {
-      await Stack.list(AWS)
+      switch (type) {
+        case 'exports':
+          {
+            await Stack.listAllExports(AWS)
+          }
+          break
+        case 'stacks':
+        default:
+          {
+            await Stack.listAllStacks(AWS)
+          }
+          break
+      }
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
     }

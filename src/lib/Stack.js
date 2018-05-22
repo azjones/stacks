@@ -130,7 +130,39 @@ export default class Stack {
    * @public
    * @param {Object} AWS
    */
-  static async list(AWS) {
+  static async listAllExports(AWS) {
+    cf = new AWS.CloudFormation()
+    let exports = []
+    let next
+    function listExports() {
+      return cf
+        .listExports({
+          NextToken: next
+        })
+        .promise()
+        .then(data => {
+          next = (data || {}).NextToken
+          exports = exports.concat(data.Exports)
+          return !next ? Promise.resolve() : listExports()
+        })
+        .catch(e => {})
+    }
+    return listExports().then(() => {
+      forEach(exports, exprt => {
+        log()
+        log(chalk.cyanBright('Export Name:'), chalk.yellow(exprt.Name))
+        log(chalk.cyanBright('Export Value:'), exprt.Value)
+        log(chalk.cyanBright('Exporting Stack Name:'), exprt.ExportingStackId.split('/')[1])
+        log(chalk.cyanBright('Exporting Stack ID:'), exprt.ExportingStackId.split('/')[2])
+      })
+      return exports
+    })
+  }
+  /**
+   * @public
+   * @param {Object} AWS
+   */
+  static async listAllStacks(AWS) {
     cf = new AWS.CloudFormation()
     let stacks = []
     let next
@@ -157,13 +189,13 @@ export default class Stack {
     return listStacks().then(() => {
       forEach(stacks, stack => {
         log()
-        log(chalk.gray('StackName:'), chalk.cyan.bold(stack.StackName))
-        log(chalk.gray('Description:'), stack.TemplateDescription || '')
-        log(chalk.gray('CreationTime:'), moment(stack.CreationTime).format('MMMM Do YYYY, h:mm:ss a'))
+        log(chalk.cyanBright('StackName:'), chalk.yellow(stack.StackName))
+        log(chalk.cyanBright('Description:'), stack.TemplateDescription || '')
+        log(chalk.cyanBright('CreationTime:'), moment(stack.CreationTime).format('MMMM Do YYYY, h:mm:ss a'))
         if (stack.LastUpdatedTime) {
-          log(chalk.gray('LastUpdatedTime:'), moment(stack.LastUpdatedTime).format('MMMM Do YYYY, h:mm:ss a'))
+          log(chalk.cyanBright('LastUpdatedTime:'), moment(stack.LastUpdatedTime).format('MMMM Do YYYY, h:mm:ss a'))
         }
-        log(chalk.gray('StackStatus:'), chalk[colorMap[stack.StackStatus]](stack.StackStatus))
+        log(chalk.cyanBright('StackStatus:'), chalk[colorMap[stack.StackStatus]](stack.StackStatus))
       })
       return stacks
     })
