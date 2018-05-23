@@ -36,6 +36,12 @@ And if you do make changes, make sure to rebuild the bin.
 $ npm run build
 ```
 
+## Uninstall
+
+```bash
+$ npm uninstall -g stacks
+```
+
 ## Usage
 
 You refer to the program as either `stacks` or `stx`. Currently you are able to `deploy`, `delete`, `list`, `upload`, `validate`, `certs` and `account`. All commands are easy to use. But if you need help, simply `$ stacks -h`.

@@ -24,7 +24,7 @@ let params
 let protect
 
 program
-  .version('1.6.1')
+  .version('1.6.2')
   .option('-p, --profile <default>', 'aws profile', 'default')
   .option('-r, --region <us-west-2>', 'aws region', 'us-west-2')
 
