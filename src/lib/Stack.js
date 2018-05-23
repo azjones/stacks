@@ -2,7 +2,7 @@ import chalk from 'chalk'
 import { forEach, sortBy } from 'lodash'
 import moment from 'moment'
 import { now } from './utils'
-import { UploadError } from './errors'
+import { UploadError, AccountError } from './errors'
 import { readFileSync } from 'fs'
 import { resolve } from 'path'
 
@@ -36,6 +36,7 @@ let bucket
 let stack
 let template
 let params
+let protect
 let displayedEvents = {}
 
 export default class Stack {
@@ -51,12 +52,14 @@ export default class Stack {
     params = options.params
     bucket = options.bucket
     region = options.region
+    protect = options.protect
     cf
       .createStack({
         StackName: stack,
         OnFailure: 'DELETE',
         Capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
         Parameters: params,
+        EnableTerminationProtection: protect,
         TemplateURL: `https://s3-${options.region}.amazonaws.com/${options.bucket}/${template}`
       })
       .promise()
@@ -191,9 +194,15 @@ export default class Stack {
         log()
         log(chalk.cyanBright('StackName:'), chalk.yellow(stack.StackName))
         log(chalk.cyanBright('Description:'), stack.TemplateDescription || '')
-        log(chalk.cyanBright('CreationTime:'), moment(stack.CreationTime).format('MMMM Do YYYY, h:mm:ss a'))
+        log(
+          chalk.cyanBright('CreationTime:'),
+          moment(stack.CreationTime).format('MMMM Do YYYY, h:mm:ss a')
+        )
         if (stack.LastUpdatedTime) {
-          log(chalk.cyanBright('LastUpdatedTime:'), moment(stack.LastUpdatedTime).format('MMMM Do YYYY, h:mm:ss a'))
+          log(
+            chalk.cyanBright('LastUpdatedTime:'),
+            moment(stack.LastUpdatedTime).format('MMMM Do YYYY, h:mm:ss a')
+          )
         }
         log(chalk.cyanBright('StackStatus:'), chalk[colorMap[stack.StackStatus]](stack.StackStatus))
       })
@@ -281,6 +290,33 @@ export default class Stack {
     }
   }
   /**
+   *
+   * @param {Object} AWS
+   */
+  static async account(AWS) {
+    const iam = new AWS.IAM()
+    try {
+      const user = await iam
+        .getAccountAuthorizationDetails({
+          Filter: ['User']
+        })
+        .promise()
+      const details = user.UserDetailList[0]
+      log(chalk.cyanBright('UserName:'), details.UserName)
+      log(chalk.cyanBright('AccessToken:'), details.UserId)
+      log(chalk.cyanBright('AccountId:'), details.Arn.split(':')[4])
+      log(chalk.cyanBright('Arn:'), details.Arn)
+      log(chalk.cyanBright('GroupList:'), details.GroupList)
+      log(chalk.cyanBright('AttachedManagedPolicies:'), details.AttachedManagedPolicies)
+      log(
+        chalk.cyanBright('CreateDate:'),
+        moment(details.CreateDate).format('MMMM Do YYYY, h:mm:ss a')
+      )
+    } catch (e) {
+      throw new AccountError(e.message)
+    }
+  }
+  /**
    * @private
    * @param {String} action
    */
@@ -302,7 +338,9 @@ export default class Stack {
               chalk.cyan(stack),
               event.ResourceType,
               event.LogicalResourceId,
-              event.ResourceStatus ? chalk[colorMap[event.ResourceStatus]](event.ResourceStatus) : '',
+              event.ResourceStatus
+                ? chalk[colorMap[event.ResourceStatus]](event.ResourceStatus)
+                : '',
               event.ResourceStatusReason || ''
             )
           }

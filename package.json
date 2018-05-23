@@ -1,6 +1,6 @@
 {
   "name": "stacks",
-  "version": "1.3.0",
+  "version": "1.4.3",
   "description": "AWS CloudFormation stack command line management tool",
   "main": "index.js",
   "scripts": {

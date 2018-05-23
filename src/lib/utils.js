@@ -62,3 +62,9 @@ export const templateExists = async template => {
     throw new TemplateError(e.message)
   }
 }
+
+export const extractTemplateName = template => {
+  return new Promise((resolve, reject) => {
+    return resolve(template.substring(template.lastIndexOf('/') + 1, template.lastIndexOf('.')))
+  })
+}

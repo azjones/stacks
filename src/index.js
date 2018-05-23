@@ -1,7 +1,15 @@
 import program from 'commander'
 import AWS from 'aws-sdk'
 import chalk from 'chalk'
-import { parseParams, now, getAccountId, getBucketName, stackExists, templateExists } from './lib/utils'
+import {
+  parseParams,
+  now,
+  getAccountId,
+  getBucketName,
+  stackExists,
+  templateExists,
+  extractTemplateName
+} from './lib/utils'
 import Stack from './lib/Stack'
 import { StackError } from './lib/errors'
 
@@ -12,30 +20,34 @@ let region
 let bucket
 let stack
 let params
+let protect
 
 program
-  .version('1.3.0')
-  .option('-p, --profile [default]', 'AWS profile', 'default')
-  .option('-r, --region [us-west-2]', 'AWS region', 'us-west-2')
+  .version('1.4.3')
+  .option('-p, --profile <default>', 'AWS profile', 'default')
+  .option('-r, --region <us-west-2>', 'AWS region', 'us-west-2')
 
 program
-  .command('deploy [template]')
-  .option('-n, --name [name]', 'Stack name', 'devops')
-  .option('-P, --params [params]', 'List of params', parseParams)
-  .action(async (template, options) => {
+  .command('deploy [template] [name]')
+  .description('deploys a stack')
+  .option('--params <params>', 'List of params', parseParams)
+  .option('--protect', 'Enable Termination Protection')
+  .action(async (template, name, options) => {
     profile = options.parent.profile
     region = options.parent.region
-    stack = options.name
     params = options.params || []
+    protect = options.protect || false
     log(chalk.cyanBright('AWS Profile:'), profile)
     log(chalk.cyanBright('AWS Region:'), region)
-    log(chalk.cyanBright('Stack Name:'), stack)
     log(chalk.cyanBright('Stack Parameters:'), params)
     log(chalk.cyanBright('Template:'), template)
+    log(chalk.cyanBright('Termination Protection:'), protect)
     AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
     AWS.config.update({ region })
     try {
       await templateExists(template)
+      stack = name || (await extractTemplateName(template))
+      log(chalk.cyanBright('Stack Name:'), stack)
       bucket = await getBucketName(AWS)
       log(chalk.cyanBright('Bucket:'), bucket)
       await Stack.upload(AWS, {
@@ -56,7 +68,8 @@ program
             params,
             region,
             bucket,
-            template
+            template,
+            protect
           })
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
@@ -111,6 +124,48 @@ program
           }
           break
       }
+    } catch (e) {
+      log(chalk.gray(now()), chalk.red(e))
+    }
+  })
+
+program
+  .command('upload [template]')
+  .description('uploads template to bucket')
+  .action(async (template, options) => {
+    profile = options.parent.profile
+    region = options.parent.region
+    log(chalk.cyanBright('AWS Profile:'), profile)
+    log(chalk.cyanBright('AWS Region:'), region)
+    log(chalk.cyanBright('Template:'), template)
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
+    AWS.config.update({ region })
+    try {
+      await templateExists(template)
+      bucket = await getBucketName(AWS)
+      log(chalk.cyanBright('Bucket:'), bucket)
+      await Stack.upload(AWS, {
+        template,
+        region,
+        bucket
+      })
+    } catch (e) {
+      log(chalk.gray(now()), chalk.red(e))
+    }
+  })
+
+program
+  .command('account')
+  .description('show account information')
+  .action(async options => {
+    profile = options.parent.profile
+    region = options.parent.region
+    log(chalk.cyanBright('AWS Profile:'), profile)
+    log(chalk.cyanBright('AWS Region:'), region)
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
+    AWS.config.update({ region })
+    try {
+      await Stack.account(AWS)
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
     }

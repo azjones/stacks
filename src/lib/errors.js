@@ -21,3 +21,11 @@ export class UploadError extends Error {
     Error.captureStackTrace(this, this.constructor)
   }
 }
+
+export class AccountError extends Error {
+  constructor(...args) {
+    super(...args)
+    this.name = this.constructor.name
+    Error.captureStackTrace(this, this.constructor)
+  }
+}
