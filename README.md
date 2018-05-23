@@ -38,7 +38,7 @@ $ npm run build
 
 ## Usage
 
-You refer to the program as either `stacks` or `stx`. Currently you are able to `deploy`, `delete`, `list`, `upload`, `validate` and `account`. All commands are easy to use. But if you need help, simply `$ stacks -h`.
+You refer to the program as either `stacks` or `stx`. Currently you are able to `deploy`, `delete`, `list`, `upload`, `validate`, `certs` and `account`. All commands are easy to use. But if you need help, simply `$ stacks -h`.
 
 ### Default parameters
 
@@ -143,6 +143,14 @@ If you aren't confident the template you are about to deploy is valid, you can h
 
 ```bash
 $ stacks validate ~/Projects/cloudapp/templates/sql.yaml
+```
+
+### Looking up account ssl certificates
+
+Some stacks require you pass a `CertificateArn`, namely, a `AWS::CloudFront::Distribution` stack. You can use stacks to quickly look up available certificates.
+
+```bash
+$ stacks certs
 ```
 
 ## License
