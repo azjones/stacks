@@ -13,6 +13,7 @@ import {
 } from './utils'
 import Stack from './lib/Stack'
 import { StackError } from './errors'
+import pkg from '../package.json'
 
 const log = console.log
 
@@ -24,7 +25,7 @@ let params
 let protect
 
 program
-  .version('1.6.2')
+  .version(pkg.version)
   .option('-p, --profile <default>', 'aws profile', 'default')
   .option('-r, --region <us-west-2>', 'aws region', 'us-west-2')
 

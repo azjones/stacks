@@ -46,6 +46,27 @@ $ npm uninstall -g stacks
 
 You refer to the program as either `stacks` or `stx`. Currently you are able to `deploy`, `delete`, `list`, `upload`, `validate`, `certs` and `account`. All commands are easy to use. But if you need help, simply `$ stacks -h`.
 
+```
+  Usage: stacks [options] [command]
+
+  Options:
+
+    -V, --version                       output the version number
+    -p, --profile <default>             aws profile (default: default)
+    -r, --region <us-west-2>            aws region (default: us-west-2)
+    -h, --help                          output usage information
+
+  Commands:
+
+    deploy [options] [template] [name]  deploys a stack
+    delete [name]                       deletes the stack
+    list [type]                         list active stacks
+    upload [options] [template]         uploads template to bucket
+    account                             show account information
+    validate [template]                 validates the template
+    certs                               lists ssl certificates
+```
+
 ### Default parameters
 
 There are two default options, `-p, --profile` and `-r, --region`. The profile option defaults to your AWS `[default]` credential located in `~/.aws/credentials`. The region option defaults to `us-west-2` and currently is not pulled from `~/.aws/config`. This needs to be fixed, currently the `aws-sdk` package does not import the region value expressed in its config as it should. So I explicitly configure it here.
@@ -61,7 +82,7 @@ $ stacks deploy ../templates/vpc.yml --protect --params Cidr=10.1.0.0/16
 ```
 
 ```bash
-$ stacks deploy ec2.yml
+$ stacks deploy ./ec2.yml
 ```
 
 If you wish to deploy a template to an AWS environment other than your default, you can simply pass the `-p, --profile` and/or `-r, --region` options. Where `prd` is a profile type in your `~/.aws/credentials`
@@ -123,8 +144,8 @@ You can upload single templates or you upload entire directories of templates wi
 By default, if you are looking to only deploy a single template file, you do not need to upload first, the `stacks deploy` command will handle that for you. However if you wish to put templates files out on to s3 for _safe keeping_ the upload command would be a nice option. If you require nested templates to exist prior to deploy, you may upload them _one-by-one_.
 
 ```bash
-$ stacks upload nestedTemplate.yml
-$ stacks upload anotherTemplate.yml
+$ stacks upload ./nestedTemplate.yml
+$ stacks upload ./anotherTemplate.yml
 ```
 
 If you wish to simply upload the directory of templates, simply point to a directory and pass the `--dir` option.

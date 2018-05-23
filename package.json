@@ -15,7 +15,13 @@
     "type": "git",
     "url": "git+https://github.com/azjones/stacks.git"
   },
-  "keywords": ["cloudformation", "templates", "cli", "nodejs", "aws"],
+  "keywords": [
+    "cloudformation",
+    "templates",
+    "cli",
+    "nodejs",
+    "aws"
+  ],
   "author": "Adam Jones",
   "license": "MIT",
   "bugs": {
