@@ -1,7 +1,7 @@
 import moment from 'moment'
-import fs from 'fs'
+import { existsSync, lstatSync } from 'fs'
 import path from 'path'
-import { TemplateError, StackError } from '../lib/errors'
+import { TemplateError, StackError } from '../errors'
 
 export const parseParams = val => {
   let list = val.split(',')
@@ -33,6 +33,19 @@ export const getAccountId = async AWS => {
     return e
   }
 }
+export const bucketExists = async (AWS, Bucket) => {
+  const s3 = new AWS.S3()
+  try {
+    await s3
+      .headBucket({
+        Bucket
+      })
+      .promise()
+    return true
+  } catch (e) {
+    return false
+  }
+}
 
 export const getBucketName = async AWS => {
   const aid = await getAccountId(AWS)
@@ -56,8 +69,25 @@ export const stackExists = async (AWS, stack) => {
 
 export const templateExists = async template => {
   try {
-    const exists = await fs.existsSync(path.resolve(process.cwd(), template))
-    if (!exists) throw new TemplateError(`${template} not found`)
+    const exists = await existsSync(path.resolve(process.cwd(), template))
+    if (!exists) {
+      throw new TemplateError(`${template} not found`)
+    } else if (lstatSync(template).isDirectory()) {
+      throw new TemplateError(`${template} is a directory, use --dir`)
+    }
+  } catch (e) {
+    throw new TemplateError(e.message)
+  }
+}
+
+export const directoryExists = async directory => {
+  try {
+    const exists = await existsSync(path.resolve(process.cwd(), directory))
+    if (!exists) {
+      throw new TemplateError(`${directory} not found`)
+    } else if (!lstatSync(directory).isDirectory()) {
+      throw new TemplateError(`${directory} is a file, remove --dir`)
+    }
   } catch (e) {
     throw new TemplateError(e.message)
   }

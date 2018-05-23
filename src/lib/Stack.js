@@ -1,10 +1,12 @@
 import chalk from 'chalk'
-import { forEach, sortBy } from 'lodash'
 import moment from 'moment'
-import { now } from './utils'
-import { UploadError, AccountError } from './errors'
-import { readFileSync } from 'fs'
+import { forEach, sortBy, filter } from 'lodash'
+import { readFileSync, readdirSync, lstatSync } from 'fs'
 import { resolve } from 'path'
+import { safeLoad } from 'js-yaml'
+import { schema } from 'yaml-cfn'
+import { now, bucketExists } from '../utils'
+import { UploadError, AccountError } from '../errors'
 
 const log = console.log
 const colorMap = {
@@ -41,7 +43,7 @@ let displayedEvents = {}
 
 export default class Stack {
   /**
-   * @public
+   * @public Creates a stack
    * @param {Object} AWS
    * @param {Object} options
    */
@@ -87,7 +89,7 @@ export default class Stack {
       })
   }
   /**
-   * @public
+   * @public Updates a stack
    * @param {Object} AWS
    * @param {Object} options
    */
@@ -130,7 +132,7 @@ export default class Stack {
       })
   }
   /**
-   * @public
+   * @public Lists all CloudFormation exports
    * @param {Object} AWS
    */
   static async listAllExports(AWS) {
@@ -162,7 +164,7 @@ export default class Stack {
     })
   }
   /**
-   * @public
+   * @public Lists all CloudFormation stacks
    * @param {Object} AWS
    */
   static async listAllStacks(AWS) {
@@ -210,7 +212,7 @@ export default class Stack {
     })
   }
   /**
-   * @public
+   * @public Deletes a stack
    * @param {Object} AWS
    * @param {Object} options
    */
@@ -250,7 +252,7 @@ export default class Stack {
       })
   }
   /**
-   * @public
+   * @public Uploads a template to s3
    * @param {Object} AWS
    * @param {Object} options
    */
@@ -258,9 +260,9 @@ export default class Stack {
     s3 = new AWS.S3()
     region = options.region
     bucket = options.bucket
-    template = options.template.substring(options.template.lastIndexOf('/') + 1)
+    template = options.template
     try {
-      if (!(await Stack.bucketExists(bucket))) {
+      if (!(await bucketExists(AWS, bucket))) {
         await s3
           .createBucket({
             Bucket: bucket,
@@ -270,27 +272,23 @@ export default class Stack {
           })
           .promise()
       }
-      const file = readFileSync(resolve(process.cwd(), options.template))
-      await s3
-        .putObject({
-          Bucket: bucket,
-          Key: template,
-          Body: Buffer.from(file)
+      if (lstatSync(template).isDirectory()) {
+        await Stack.uploadDirectory(AWS, {
+          bucket,
+          template
         })
-        .promise()
-      log(
-        chalk.gray(now()),
-        'Uploading',
-        chalk.cyan(template),
-        `s3://${bucket}/${template}`,
-        chalk.green('UPLOAD_COMPLETE')
-      )
+      } else {
+        await Stack.uploadTemplate(AWS, {
+          bucket,
+          template
+        })
+      }
     } catch (e) {
       throw new UploadError(e.message)
     }
   }
   /**
-   *
+   * @public Provides users AWS account information
    * @param {Object} AWS
    */
   static async account(AWS) {
@@ -317,7 +315,30 @@ export default class Stack {
     }
   }
   /**
-   * @private
+   * @public Validates a template
+   * @param {Object} AWS
+   * @param {String} template
+   */
+  static async validate(AWS, template) {
+    const cf = new AWS.CloudFormation()
+    try {
+      const tmpl = safeLoad(readFileSync(template, 'utf8'), { schema: schema })
+      const valid = await cf
+        .validateTemplate({
+          TemplateBody: JSON.stringify(tmpl)
+        })
+        .promise()
+      if (valid != null) {
+        log(chalk.greenBright('Valid Template!'), template.substring(template.lastIndexOf('/') + 1))
+      } else {
+        log(chalk.redBright('Invalid Template!'), template.substring(template.lastIndexOf('/') + 1))
+      }
+    } catch (e) {
+      throw new Error(e.message)
+    }
+  }
+  /**
+   * @private Checks the status of stack progress
    * @param {String} action
    */
   static checkStatus(action) {
@@ -351,7 +372,7 @@ export default class Stack {
       })
   }
   /**
-   * @private
+   * @private Gets all stack progress events
    */
   static getAllStackEvents() {
     let next
@@ -377,19 +398,66 @@ export default class Stack {
     })
   }
   /**
-   * @private
-   * @param {String} Bucket
+   * @private Uploads a single template file
+   * @param {Object} AWS
+   * @param {Obejct} options
    */
-  static async bucketExists(Bucket) {
+  static async uploadTemplate(AWS, options) {
+    const s3 = new AWS.S3()
+    bucket = options.bucket
+    template = options.template.substring(options.template.lastIndexOf('/') + 1)
     try {
+      const file = readFileSync(resolve(process.cwd(), options.template))
       await s3
-        .headBucket({
-          Bucket
+        .putObject({
+          Bucket: bucket,
+          Key: template,
+          Body: Buffer.from(file)
         })
         .promise()
-      return true
+      log(
+        chalk.gray(now()),
+        'Uploading',
+        chalk.cyan(template),
+        `s3://${bucket}/${template}`,
+        chalk.green('UPLOAD_COMPLETE')
+      )
     } catch (e) {
-      return false
+      throw new UploadError(e.message)
+    }
+  }
+  /**
+   * @private Uploads a directory of template files
+   * @param {Object} AWS
+   * @param {Obejct} options
+   */
+  static async uploadDirectory(AWS, options) {
+    const s3 = new AWS.S3()
+    bucket = options.bucket
+    try {
+      const dir = resolve(process.cwd(), options.template)
+      const files = readdirSync(resolve(process.cwd(), options.template))
+      const templates = filter(files, file => /[^\s](yml|yaml)$/.test(file))
+      await templates.map(async template => {
+        const file = readFileSync(resolve(dir, template))
+        await s3
+          .putObject({
+            Bucket: bucket,
+            Key: template,
+            Body: Buffer.from(file)
+          })
+          .promise()
+        log(
+          chalk.gray(now()),
+          'Uploading',
+          chalk.cyan(template),
+          `s3://${bucket}/${template}`,
+          chalk.green('UPLOAD_COMPLETE')
+        )
+      })
+      return
+    } catch (e) {
+      throw new UploadError(e.message)
     }
   }
 }

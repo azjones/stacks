@@ -8,10 +8,11 @@ import {
   getBucketName,
   stackExists,
   templateExists,
+  directoryExists,
   extractTemplateName
-} from './lib/utils'
+} from './utils'
 import Stack from './lib/Stack'
-import { StackError } from './lib/errors'
+import { StackError } from './errors'
 
 const log = console.log
 
@@ -23,15 +24,15 @@ let params
 let protect
 
 program
-  .version('1.4.3')
-  .option('-p, --profile <default>', 'AWS profile', 'default')
-  .option('-r, --region <us-west-2>', 'AWS region', 'us-west-2')
+  .version('1.5.2')
+  .option('-p, --profile <default>', 'aws profile', 'default')
+  .option('-r, --region <us-west-2>', 'aws region', 'us-west-2')
 
 program
   .command('deploy [template] [name]')
   .description('deploys a stack')
-  .option('--params <params>', 'List of params', parseParams)
-  .option('--protect', 'Enable Termination Protection')
+  .option('--params <params>', 'list of params', parseParams)
+  .option('--protect', 'enable termination protection')
   .action(async (template, name, options) => {
     profile = options.parent.profile
     region = options.parent.region
@@ -77,9 +78,9 @@ program
   })
 
 program
-  .command('delete [stack]')
+  .command('delete [name]')
   .description('deletes the stack')
-  .action(async (stack, options) => {
+  .action(async (name, options) => {
     profile = options.parent.profile
     region = options.parent.region
     log(chalk.cyanBright('AWS Profile:'), profile)
@@ -87,13 +88,13 @@ program
     AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
     AWS.config.update({ region })
     try {
-      if (!(await stackExists(AWS, stack))) {
-        throw new StackError(`${stack} does not exist`)
+      if (!(await stackExists(AWS, name))) {
+        throw new StackError(`${name} does not exist`)
       }
       Stack.delete(AWS, {
         profile,
         region,
-        stack
+        name
       })
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
@@ -132,16 +133,23 @@ program
 program
   .command('upload [template]')
   .description('uploads template to bucket')
+  .option('--dir', 'Is a directory')
   .action(async (template, options) => {
     profile = options.parent.profile
     region = options.parent.region
+    const dir = options.dir || false
     log(chalk.cyanBright('AWS Profile:'), profile)
     log(chalk.cyanBright('AWS Region:'), region)
-    log(chalk.cyanBright('Template:'), template)
     AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
     AWS.config.update({ region })
     try {
-      await templateExists(template)
+      if (dir) {
+        log(chalk.cyanBright('Template Directory:'), template)
+        await directoryExists(template)
+      } else {
+        log(chalk.cyanBright('Template:'), template)
+        await templateExists(template)
+      }
       bucket = await getBucketName(AWS)
       log(chalk.cyanBright('Bucket:'), bucket)
       await Stack.upload(AWS, {
@@ -171,4 +179,26 @@ program
     }
   })
 
+program
+  .command('validate [template]')
+  .description('validates the template')
+  .action(async (template, options) => {
+    profile = options.parent.profile
+    region = options.parent.region
+    params = options.params || []
+    log(chalk.cyanBright('AWS Profile:'), profile)
+    log(chalk.cyanBright('AWS Region:'), region)
+    log(chalk.cyanBright('Template:'), template)
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
+    AWS.config.update({ region })
+    try {
+      await templateExists(template)
+      await Stack.validate(AWS, template)
+    } catch (e) {
+      log(chalk.gray(now()), chalk.red(e))
+    }
+  })
+
 program.parse(process.argv)
+
+process.on('exit', code => log())
