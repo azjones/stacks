@@ -24,7 +24,7 @@ let params
 let protect
 
 program
-  .version('1.5.2')
+  .version('1.6.0')
   .option('-p, --profile <default>', 'aws profile', 'default')
   .option('-r, --region <us-west-2>', 'aws region', 'us-west-2')
 
@@ -194,6 +194,23 @@ program
     try {
       await templateExists(template)
       await Stack.validate(AWS, template)
+    } catch (e) {
+      log(chalk.gray(now()), chalk.red(e))
+    }
+  })
+
+program
+  .command('certs')
+  .description('lists ssl certificates')
+  .action(async options => {
+    profile = options.parent.profile
+    region = options.parent.region
+    log(chalk.cyanBright('AWS Profile:'), profile)
+    log(chalk.cyanBright('AWS Region:'), 'us-east-1', chalk.gray.italic('certs are in us-east-1'))
+    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
+    AWS.config.update({ region })
+    try {
+      await Stack.listCerts(AWS, region)
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
     }

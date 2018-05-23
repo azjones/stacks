@@ -6,7 +6,7 @@ import { resolve } from 'path'
 import { safeLoad } from 'js-yaml'
 import { schema } from 'yaml-cfn'
 import { now, bucketExists } from '../utils'
-import { UploadError, AccountError } from '../errors'
+import { UploadError, AccountError, CertificateError } from '../errors'
 
 const log = console.log
 const colorMap = {
@@ -335,6 +335,39 @@ export default class Stack {
       }
     } catch (e) {
       throw new Error(e.message)
+    }
+  }
+  /**
+   * @public Lists ssl certificates
+   * @param {Object} AWS
+   * @param {String} region
+   */
+  static async listCerts(AWS, region) {
+    AWS.config.update({ region: 'us-east-1' })
+    const acm = new AWS.ACM()
+    try {
+      const certs = await acm
+        .listCertificates({
+          CertificateStatuses: [
+            'VALIDATION_TIMED_OUT',
+            'PENDING_VALIDATION',
+            'EXPIRED',
+            'INACTIVE',
+            'ISSUED',
+            'FAILED',
+            'REVOKED'
+          ]
+        })
+        .promise()
+      certs.CertificateSummaryList.forEach(cert => {
+        log()
+        log(chalk.cyanBright('DomainName:'), chalk.yellow(cert.DomainName))
+        log(chalk.cyanBright('CertificateArn:'), cert.CertificateArn)
+      })
+    } catch (e) {
+      throw new CertificateError(e.message)
+    } finally {
+      AWS.config.update({ region })
     }
   }
   /**
