@@ -218,7 +218,7 @@ export default class Stack {
    */
   static delete(AWS, options) {
     cf = new AWS.CloudFormation()
-    stack = options.stack
+    stack = options.name
     cf
       .deleteStack({
         StackName: stack
