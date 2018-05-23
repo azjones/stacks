@@ -30,6 +30,12 @@ If you wish to make changes, prior to doing so, you will need to install depende
 $ npm i
 ```
 
+And if you do make changes, make sure to rebuild the bin.
+
+```bash
+$ npm run build
+```
+
 ## Usage
 
 You refer to the program as either `stacks` or `stx`. Currently you are able to `deploy`, `delete`, `list`, `upload`, `validate` and `account`. All commands are easy to use. But if you need help, simply `$ stacks -h`.
