@@ -10,16 +10,16 @@ import { UploadError, AccountError, CertificateError } from '../errors'
 
 const log = console.log
 const colorMap = {
-  CREATE_IN_PROGRESS: 'gray',
+  CREATE_IN_PROGRESS: 'yellowBright',
   CREATE_COMPLETE: 'green',
   CREATE_FAILED: 'red',
-  DELETE_IN_PROGRESS: 'gray',
+  DELETE_IN_PROGRESS: 'redBright',
   DELETE_COMPLETE: 'green',
   DELETE_FAILED: 'red',
   ROLLBACK_FAILED: 'red',
   ROLLBACK_IN_PROGRESS: 'yellow',
   ROLLBACK_COMPLETE: 'red',
-  UPDATE_IN_PROGRESS: 'gray',
+  UPDATE_IN_PROGRESS: 'yellowBright',
   UPDATE_COMPLETE: 'green',
   UPDATE_COMPLETE_CLEANUP_IN_PROGRESS: 'green',
   UPDATE_ROLLBACK_IN_PROGRESS: 'yellow',
@@ -180,7 +180,14 @@ export default class Stack {
             'UPDATE_ROLLBACK_COMPLETE',
             'UPDATE_COMPLETE',
             'DELETE_FAILED',
-            'DELETE_IN_PROGRESS'
+            'DELETE_IN_PROGRESS',
+            'CREATE_IN_PROGRESS',
+            'CREATE_FAILED',
+            'ROLLBACK_IN_PROGRESS',
+            'ROLLBACK_FAILED',
+            'DELETE_IN_PROGRESS',
+            'UPDATE_IN_PROGRESS',
+            'REVIEW_IN_PROGRESS'
           ]
         })
         .promise()
