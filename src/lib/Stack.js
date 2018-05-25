@@ -16,6 +16,7 @@ const colorMap = {
   DELETE_IN_PROGRESS: 'redBright',
   DELETE_COMPLETE: 'green',
   DELETE_FAILED: 'red',
+  DELETE_SKIPPED: 'yellow',
   ROLLBACK_FAILED: 'red',
   ROLLBACK_IN_PROGRESS: 'yellow',
   ROLLBACK_COMPLETE: 'red',
@@ -162,6 +163,27 @@ export default class Stack {
       })
       return exports
     })
+  }
+  /**
+   * @public Lists all s3 buckets
+   * @param {Object} AWS
+   */
+  static async listBuckets(AWS) {
+    const s3 = new AWS.S3()
+    try {
+      const buckets = await s3.listBuckets().promise()
+      log(chalk.cyanBright('Buckets Owner:'), buckets.Owner.DisplayName)
+      forEach(buckets.Buckets, bucket => {
+        log()
+        log(chalk.cyanBright('Bucket:'), chalk.yellow(bucket.Name))
+        log(
+          chalk.cyanBright('CreationDate:'),
+          moment(bucket.CreationDate).format('MMMM Do YYYY, h:mm:ss a')
+        )
+      })
+    } catch (e) {
+      throw new Error(e.message)
+    }
   }
   /**
    * @public Lists all CloudFormation stacks

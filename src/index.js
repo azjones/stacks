@@ -104,7 +104,7 @@ program
 
 program
   .command('list [type]')
-  .description('list active stacks')
+  .description('list stacks, exports or buckets')
   .action(async (type, options) => {
     profile = options.parent.profile
     region = options.parent.region
@@ -114,6 +114,11 @@ program
     AWS.config.update({ region })
     try {
       switch (type) {
+        case 'buckets':
+          {
+            await Stack.listBuckets(AWS)
+          }
+          break
         case 'exports':
           {
             await Stack.listAllExports(AWS)
