@@ -14,6 +14,22 @@ export class StackError extends Error {
   }
 }
 
+export class BucketError extends Error {
+  constructor(...args) {
+    super(...args)
+    this.name = this.constructor.name
+    Error.captureStackTrace(this, this.constructor)
+  }
+}
+
+export class LogsError extends Error {
+  constructor(...args) {
+    super(...args)
+    this.name = this.constructor.name
+    Error.captureStackTrace(this, this.constructor)
+  }
+}
+
 export class UploadError extends Error {
   constructor(...args) {
     super(...args)

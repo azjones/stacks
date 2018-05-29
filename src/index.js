@@ -1,6 +1,7 @@
 import program from 'commander'
 import AWS from 'aws-sdk'
 import chalk from 'chalk'
+import prompt from 'promptly'
 import {
   parseParams,
   now,
@@ -9,10 +10,11 @@ import {
   stackExists,
   templateExists,
   directoryExists,
-  extractTemplateName
+  extractTemplateName,
+  bucketExists
 } from './utils'
 import Stack from './lib/Stack'
-import { StackError } from './errors'
+import { StackError, BucketError } from './errors'
 import pkg from '../package.json'
 
 const log = console.log
@@ -79,24 +81,51 @@ program
   })
 
 program
-  .command('delete [name]')
+  .command('delete [type] [name]')
   .description('deletes the stack')
-  .action(async (name, options) => {
-    profile = options.parent.profile
-    region = options.parent.region
-    log(chalk.cyanBright('AWS Profile:'), profile)
-    log(chalk.cyanBright('AWS Region:'), region)
-    AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
-    AWS.config.update({ region })
+  .action(async (type, name, options) => {
     try {
-      if (!(await stackExists(AWS, name))) {
-        throw new StackError(`${name} does not exist`)
+      if (type === undefined || name === undefined) {
+        throw new Error('Both [type] and [name] arguments must be supplied')
       }
-      Stack.delete(AWS, {
-        profile,
-        region,
-        name
-      })
+      profile = options.parent.profile
+      region = options.parent.region
+      if (!(await prompt.confirm('This is permanent, are you sure? '))) {
+        log(chalk.yellowBright('Delete operation canceled'))
+        process.exit()
+      }
+      log(chalk.cyanBright('AWS Profile:'), profile)
+      log(chalk.cyanBright('AWS Region:'), region)
+      AWS.config.credentials = new AWS.SharedIniFileCredentials({ profile })
+      AWS.config.update({ region })
+      switch (type) {
+        case 'stack':
+          {
+            if (!(await stackExists(AWS, name))) {
+              throw new StackError(`${name} does not exist`)
+            }
+            Stack.deleteStack(AWS, { name })
+          }
+          break
+        case 'bucket':
+          {
+            if (!(await bucketExists(AWS, name))) {
+              throw new BucketError(`${name} does not exist`)
+            }
+            Stack.deleteBucket(AWS, { name })
+          }
+          break
+        case 'logs':
+          {
+            Stack.deleteLogs(AWS, { name })
+          }
+          break
+        default:
+          {
+            throw new Error('Invalid [type], must be stack or bucket')
+          }
+          break
+      }
     } catch (e) {
       log(chalk.gray(now()), chalk.red(e))
     }
@@ -122,6 +151,11 @@ program
         case 'exports':
           {
             await Stack.listAllExports(AWS)
+          }
+          break
+        case 'logs':
+          {
+            await Stack.listLogs(AWS)
           }
           break
         case 'stacks':

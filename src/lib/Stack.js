@@ -6,7 +6,7 @@ import { resolve } from 'path'
 import { safeLoad } from 'js-yaml'
 import { schema } from 'yaml-cfn'
 import { now, bucketExists } from '../utils'
-import { UploadError, AccountError, CertificateError } from '../errors'
+import { UploadError, AccountError, CertificateError, LogsError, BucketError } from '../errors'
 
 const log = console.log
 const colorMap = {
@@ -37,6 +37,7 @@ let s3
 let region
 let bucket
 let stack
+let logGroupName
 let template
 let params
 let protect
@@ -241,11 +242,32 @@ export default class Stack {
     })
   }
   /**
+   * @public Lists all CloudWatch log groups
+   * @param {Object} AWS
+   */
+  static async listLogs(AWS) {
+    const cwl = new AWS.CloudWatchLogs()
+    try {
+      const groups = await cwl.describeLogGroups().promise()
+      log()
+      forEach(groups.logGroups, group => {
+        log(chalk.cyanBright('LogGroupName:'), chalk.yellow(group.logGroupName))
+        log(
+          chalk.cyanBright('CreationTime:'),
+          moment(group.creationTime).format('MMMM Do YYYY, h:mm:ss a')
+        )
+        log()
+      })
+    } catch (e) {
+      throw new LogsError(e.message)
+    }
+  }
+  /**
    * @public Deletes a stack
    * @param {Object} AWS
    * @param {Object} options
    */
-  static delete(AWS, options) {
+  static deleteStack(AWS, options) {
     cf = new AWS.CloudFormation()
     stack = options.name
     cf
@@ -278,6 +300,52 @@ export default class Stack {
             clearInterval(interval)
             log(chalk.gray(now()), chalk.red(e))
           })
+      })
+  }
+  /**
+   * @public Deletes S3 bucket
+   * @param {Object} AWS
+   * @param {Object} options
+   */
+  static async deleteBucket(AWS, options) {
+    const s3 = new AWS.S3()
+    bucket = options.name
+    const items = await s3.listObjects({ Bucket: bucket }).promise()
+    if (items.Contents.length !== 0) {
+      await s3
+        .deleteObjects({
+          Bucket: bucket
+        })
+        .promise()
+    }
+    s3
+      .deleteBucket({
+        Bucket: bucket
+      })
+      .promise()
+      .then(data => {
+        log('Deleting', chalk.cyanBright(bucket), chalk.green('DELETE_COMPLETE'))
+      })
+      .catch(e => {
+        throw new BucketError(e.message)
+      })
+  }
+  /**
+   * @public Deletes CloudWatch log group
+   * @param {Object} AWS
+   * @param {Object} options
+   */
+  static deleteLogs(AWS, options) {
+    const clw = new AWS.CloudWatchLogs()
+    logGroupName = options.name
+    clw
+      .deleteLogGroup({ logGroupName })
+      .promise()
+      .then(data => {
+        log('Deleting logs', chalk.cyanBright(logGroupName), chalk.green('DELETE_COMPLETE'))
+      })
+      .catch(e => {
+        throw new LogsError(e.message)
       })
   }
   /**
