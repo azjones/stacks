@@ -82,7 +82,7 @@ program
 
 program
   .command('delete [type] [name]')
-  .description('deletes the stack')
+  .description('deletes stack, bucket, logs')
   .action(async (type, name, options) => {
     try {
       if (type === undefined || name === undefined) {
@@ -133,7 +133,7 @@ program
 
 program
   .command('list [type]')
-  .description('list stacks, exports or buckets')
+  .description('list stacks, exports, buckets, logs')
   .action(async (type, options) => {
     profile = options.parent.profile
     region = options.parent.region

@@ -59,8 +59,8 @@ You refer to the program as either `stacks` or `stx`. Currently you are able to 
   Commands:
 
     deploy [options] [template] [name]  deploys a stack
-    delete [name]                       deletes the stack
-    list [type]                         list active stacks
+    delete [type] [name]                delete stack, bucket, logs
+    list [type]                         list stacks, exports, buckets, logs
     upload [options] [template]         uploads template to bucket
     account                             show account information
     validate [template]                 validates the template
@@ -97,23 +97,30 @@ You may also name your stacks other than the name of the file you pass it. In th
 $ stacks deploy ../template/usermanagement.yaml cognito --protect --params AuthName=test -p stage
 ```
 
-### Deleting a CloudFormation template
+### Deleting a CloudFormation template, S3 bucket or CloudWatch log group
 
-Deleting a template is easier than deploying it! Just tell `stacks` to `delete` and pass the name of the stack.
+Deleting a template is easier than deploying it! Just tell `stacks` to `delete` and pass the name of the stack. Or you can tell `stacks` to `delete bucket` or `delete logs`
 
 ```bash
-$ stacks delete cognito
+$ stacks delete stack cognito
+```
+
+Or you can delete a bucket or log group
+
+```bash
+$ stacks delete bucket cicd-deploy-artifacts
+$ stacks delete logs /aws/lambda/function
 ```
 
 If you need to delete a stack from an environment other than your default, simply pass the profile.
 
 ```bash
-$ stacks delete cognito -p stage
+$ stacks delete stack cognito -p stage
 ```
 
-### Listing stacks or exports
+### Listing stacks, exports, buckets or logs
 
-With the list command, you can list stacks or exports. Simply pass either `stacks` or `exports` in the command. You can list stacks.
+With the list command, you can list stacks or exports. Simply pass either `stacks`, `exports`, `buckets` or `logs` in the command. You can list stacks.
 
 ```bash
 $ stacks list
@@ -125,10 +132,12 @@ or
 $ stacks list stacks
 ```
 
-Or you can list exports
+Or you can list exports, buckets or logs
 
 ```bash
 $ stacks list exports
+$ stacks list buckets
+$ stacks list logs
 ```
 
 And of course you can list stacks or exports in different environments.
