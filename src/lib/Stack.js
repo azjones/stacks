@@ -396,17 +396,19 @@ export default class Stack {
           Filter: ['User']
         })
         .promise()
-      const details = user.UserDetailList[0]
-      log(chalk.cyanBright('UserName:'), details.UserName)
-      log(chalk.cyanBright('AccessToken:'), details.UserId)
-      log(chalk.cyanBright('AccountId:'), details.Arn.split(':')[4])
-      log(chalk.cyanBright('Arn:'), details.Arn)
-      log(chalk.cyanBright('GroupList:'), details.GroupList)
-      log(chalk.cyanBright('AttachedManagedPolicies:'), details.AttachedManagedPolicies)
-      log(
-        chalk.cyanBright('CreateDate:'),
-        moment(details.CreateDate).format('MMMM Do YYYY, h:mm:ss a')
-      )
+      forEach(user.UserDetailList, details => {
+        log()
+        log(chalk.cyanBright('UserName:'), details.UserName)
+        log(chalk.cyanBright('AccessToken:'), details.UserId)
+        log(chalk.cyanBright('AccountId:'), details.Arn.split(':')[4])
+        log(chalk.cyanBright('Arn:'), details.Arn)
+        log(chalk.cyanBright('GroupList:'), details.GroupList)
+        log(chalk.cyanBright('AttachedManagedPolicies:'), details.AttachedManagedPolicies)
+        log(
+          chalk.cyanBright('CreateDate:'),
+          moment(details.CreateDate).format('MMMM Do YYYY, h:mm:ss a')
+        )
+      })
     } catch (e) {
       throw new AccountError(e.message)
     }
